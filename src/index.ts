@@ -20,7 +20,7 @@ const MAX_RUNS = 200;
 const MANUAL_COOLDOWN_MS = 60_000;
 
 async function check(target: Target, env: Env): Promise<Sample> {
-  const headers: Record<string, string> = { "user-agent": "pulse-uptime/1.0" };
+  const headers: Record<string, string> = { "user-agent": "vynco-dashboard/1.0" };
   const key = target.apiKeySecret && env[target.apiKeySecret];
   if (typeof key === "string") {
     headers.apikey = key;

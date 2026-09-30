@@ -3,7 +3,7 @@ export const dashboard = /* html */ `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pulse</title>
+<title>VYNCO Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='9' fill='%2322c55e'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -26,6 +26,7 @@ export const dashboard = /* html */ `<!doctype html>
   .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
   h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+  h1 .sub { font-weight: 400; color: var(--muted); margin-left: -4px; }
   .meta { color: var(--muted); font-size: 13px; }
   button { font: inherit; font-weight: 500; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; cursor: pointer; transition: border-color .15s; }
   button:hover { border-color: var(--muted); }
@@ -70,7 +71,7 @@ export const dashboard = /* html */ `<!doctype html>
 <div class="wrap">
   <header>
     <div>
-      <h1><span class="dot" id="hdot"></span>Pulse</h1>
+      <h1><span class="dot" id="hdot"></span>VYNCO<span class="sub">Dashboard</span></h1>
       <div class="meta" id="meta">Loading…</div>
     </div>
     <button id="check">Check now</button>
@@ -125,7 +126,7 @@ function render() {
   $("hdot").className = "dot " + cls;
   $("banner").innerHTML = '<span class="dot ' + cls + '"></span><span>' +
     (down.length ? down.length + " down: " + down.map((t) => esc(t.name)).join(", ") : "All systems operational") + "</span>";
-  document.title = (down.length ? "(" + down.length + " down) " : "") + "Pulse";
+  document.title = (down.length ? "(" + down.length + " down) " : "") + "VYNCO Dashboard";
 
   const next = Math.max(0, Math.ceil((last.t + CRON_MINUTES * 60e3 - Date.now()) / 60e3));
   $("meta").textContent = "Checked " + ago(last.t) + " · next keep-alive in ~" + next + "m · " + runs.length + " runs stored";

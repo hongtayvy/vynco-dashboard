@@ -1,4 +1,4 @@
-# Pulse
+# VYNCO Dashboard
 
 One Cloudflare Worker that does two jobs:
 

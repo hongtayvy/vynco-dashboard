@@ -1,5 +1,5 @@
 {
-  "name": "pulse",
+  "name": "vynco-dashboard",
   "private": true,
   "type": "module",
   "scripts": {
