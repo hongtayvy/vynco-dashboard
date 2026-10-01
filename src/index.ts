@@ -21,8 +21,11 @@ const MANUAL_COOLDOWN_MS = 60_000;
 
 async function check(target: Target, env: Env): Promise<Sample> {
   const headers: Record<string, string> = { "user-agent": "vynco-dashboard/1.0" };
-  const key = target.apiKeySecret && env[target.apiKeySecret];
-  if (typeof key === "string") {
+  if (target.apiKeySecret) {
+    const key = env[target.apiKeySecret];
+    // Supabase answers 401 to a keyless request, which would read as a healthy 4xx on some
+    // targets. Fail loudly instead of sending it.
+    if (typeof key !== "string" || !key) return [0, 0, 0];
     headers.apikey = key;
     headers.authorization = `Bearer ${key}`;
   }

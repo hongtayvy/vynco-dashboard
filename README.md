@@ -15,7 +15,7 @@ One Cloudflare Worker that does two jobs:
 npm install
 npx wrangler login
 npx wrangler kv namespace create STATUS   # paste the id into wrangler.jsonc
-npx wrangler secret put TWOFOLD_SUPABASE_ANON_KEY
+npx wrangler secret put SUPABASE_ANON_KEY
 npm run deploy
 ```
 
