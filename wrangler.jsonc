@@ -5,6 +5,12 @@
   "compatibility_date": "2026-09-01",
   "observability": { "enabled": true },
 
+  // Served only from the custom domain, so the Cloudflare Access rule on it cannot be bypassed
+  // through a workers.dev or preview URL. Wrangler creates the DNS record and certificate.
+  "routes": [{ "pattern": "dashboard.victoryandcompany.com", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+
   // Render's free tier sleeps a web service after 15 idle minutes; a 14-minute cron keeps it
   // awake, and the same run records the status of every other project for the dashboard.
   "triggers": { "crons": ["*/14 * * * *"] },

@@ -72,32 +72,40 @@ function statusPayload(runs: Run[]) {
 
 export default {
   async fetch(req, env): Promise<Response> {
-    const { pathname } = new URL(req.url);
-
-    if (pathname === "/api/status" && req.method === "GET") {
-      return Response.json(statusPayload(await loadRuns(env)), {
-        headers: { "cache-control": "no-store" },
-      });
-    }
-
-    if (pathname === "/api/check" && req.method === "POST") {
-      // The endpoint is public, so a cooldown stops anyone from burning the KV write quota.
-      const runs = await loadRuns(env);
-      const last = runs.at(-1);
-      const fresh = last && Date.now() - last.t < MANUAL_COOLDOWN_MS;
-      return Response.json(statusPayload(fresh ? runs : await runChecks(env)));
-    }
-
-    if (pathname === "/" && req.method === "GET") {
-      return new Response(dashboard, {
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
-    }
-
-    return new Response("Not found", { status: 404 });
+    const res = await route(req, env);
+    const out = new Response(res.body, res);
+    // Internal tool: keep it out of search results even if the Access rule is ever removed.
+    out.headers.set("x-robots-tag", "noindex, nofollow");
+    return out;
   },
 
   async scheduled(_controller, env, ctx) {
     ctx.waitUntil(runChecks(env));
   },
 } satisfies ExportedHandler<Env>;
+
+async function route(req: Request, env: Env): Promise<Response> {
+  const { pathname } = new URL(req.url);
+
+  if (pathname === "/api/status" && req.method === "GET") {
+    return Response.json(statusPayload(await loadRuns(env)), {
+      headers: { "cache-control": "no-store" },
+    });
+  }
+
+  if (pathname === "/api/check" && req.method === "POST") {
+    // The endpoint is public, so a cooldown stops anyone from burning the KV write quota.
+    const runs = await loadRuns(env);
+    const last = runs.at(-1);
+    const fresh = last && Date.now() - last.t < MANUAL_COOLDOWN_MS;
+    return Response.json(statusPayload(fresh ? runs : await runChecks(env)));
+  }
+
+  if (pathname === "/" && req.method === "GET") {
+    return new Response(dashboard, {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+
+  return new Response("Not found", { status: 404 });
+}

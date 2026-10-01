@@ -11,17 +11,20 @@ export interface Target {
   maxOkStatus?: number;
   /** Name of a Worker secret sent as the `apikey` header (Supabase anon key). */
   apiKeySecret?: string;
-  /** Milliseconds before the check gives up. Render cold starts need close to a minute. */
+  /** Milliseconds before the check gives up. Render cold starts can take 45s or more. */
   timeoutMs?: number;
 }
 
 // Hostnames marked "unverified" did not answer when this list was last checked (2026-10-01).
-// Swap in the real URLs from the Render and Cloudflare dashboards.
+// Swap in the real URLs from the Render dashboard.
 //
-// Both APIs share one Supabase project (bsbcqmzchyfvnvcebnxh). Supabase does not document what
-// counts as activity against its 7-day pause, so each layer is pinged: the APIs open real
-// Postgres connections, and the direct calls hit PostgREST and Auth. Confirm by watching that the
-// project stays unpaused for a week or two; if it pauses anyway, only Supabase Pro prevents it.
+// The Cloudflare group matches the account (checked 2026-10-01): the four zones are
+// victoryang.xyz, letter-drop.com, twofoldfinance.com and victoryandcompany.com, and the five
+// Workers & Pages projects are twofold-web, letter-drop, personal-portfolio, echoflash and
+// super-flawed. victoryandcompany.com is not listed because this dashboard is served from it.
+// Domains seen in the repos but not on the account (twofold.app, twofoldfinance.app,
+// discgolfbagtips.com) are not registered, so they are left out.
+
 export const targets: Target[] = [
   // Render: the Spring health endpoints check the Supabase connection too, so pinging them
   // keeps both the service and its database warm.
@@ -33,7 +36,7 @@ export const targets: Target[] = [
     // and a scheduled job has no token, so /actuator/health is the only unauthenticated route.
     url: "https://twofold-business.onrender.com/actuator/health",
     keepAlive: true,
-    timeoutMs: 90_000,
+    timeoutMs: 120_000,
   },
   {
     id: "discgolfbagtips-api",
@@ -43,7 +46,7 @@ export const targets: Target[] = [
     // runs real queries against Postgres, unlike /actuator/health.
     url: "https://discgolfbagtips-api.onrender.com/api/v1/status", // unverified: Render says no such service
     keepAlive: true,
-    timeoutMs: 90_000,
+    timeoutMs: 120_000,
   },
   {
     id: "beyblade-x-api",
@@ -52,7 +55,7 @@ export const targets: Target[] = [
     url: "https://beyblade-x-api.onrender.com/api/beyblades",
     keepAlive: true,
     maxOkStatus: 499, // the bare route answers 400, which still proves the service is awake
-    timeoutMs: 90_000,
+    timeoutMs: 120_000,
   },
 
   // Supabase: free projects pause after a week without activity.
@@ -80,10 +83,6 @@ export const targets: Target[] = [
   { id: "portfolio", name: "Portfolio", provider: "cloudflare", url: "https://victoryang.xyz" },
   { id: "letter-drop", name: "Letter Drop", provider: "cloudflare", url: "https://letter-drop.com" },
   { id: "super-flawed", name: "Super Flawed", provider: "cloudflare", url: "https://super-flawed.pages.dev" },
-  {
-    id: "discgolfbagtips-web",
-    name: "Disc Golf Bag Tips",
-    provider: "cloudflare",
-    url: "https://discgolfbagtips.pages.dev", // unverified
-  },
+  { id: "twofold-site", name: "Twofold", provider: "cloudflare", url: "https://twofoldfinance.com" },
+  { id: "echoflash", name: "Echoflash", provider: "cloudflare", url: "https://echoflash.pages.dev" },
 ];

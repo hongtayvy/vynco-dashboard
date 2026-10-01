@@ -19,6 +19,18 @@ npx wrangler secret put SUPABASE_ANON_KEY
 npm run deploy
 ```
 
+The Worker is served only from **dashboard.victoryandcompany.com** (`routes` in `wrangler.jsonc`;
+Wrangler creates the DNS record and certificate). `workers_dev` and preview URLs are off so the
+Access rule below cannot be bypassed.
+
+### Lock it down with Cloudflare Access
+
+Zero Trust is not set up on the account yet, so this is a one-time job in the dashboard:
+
+1. Zero Trust, pick a team name (the free plan covers up to 50 users).
+2. Access, Applications, Add, Self-hosted. Domain `dashboard.victoryandcompany.com`.
+3. Policy: Allow, include your email. Responses also carry `X-Robots-Tag: noindex`.
+
 Edit `src/targets.ts` to add or fix projects. Entries marked `unverified` did not answer when this
 was written; replace them with the real URLs from the Render and Supabase dashboards.
 
