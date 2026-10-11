@@ -9,6 +9,8 @@ export interface Target {
   keepAlive?: boolean;
   /** Highest HTTP status still counted as up. Defaults to 399. */
   maxOkStatus?: number;
+  /** Counted as down when the response body contains this text, even on an accepted status. */
+  failIfBodyIncludes?: string;
   /** Name of a Worker secret sent as the `apikey` header (Supabase anon key). */
   apiKeySecret?: string;
   /** Milliseconds before the check gives up. Render cold starts can take 45s or more. */
@@ -78,6 +80,7 @@ export const targets: Target[] = [
     // RLS may refuse the anon role with 401 or 403, but the request still reached Postgres. A
     // missing table is a 404 and stays down. A wrong key is caught by the Auth target above.
     maxOkStatus: 403,
+    failIfBodyIncludes: "Invalid API key",
   },
 
   // Cloudflare

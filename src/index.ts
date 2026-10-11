@@ -6,8 +6,11 @@ export interface Env {
   [secret: string]: unknown;
 }
 
-/** [up ? 1 : 0, latency ms, HTTP status or 0 when the request never completed] */
-type Sample = [0 | 1, number, number];
+/**
+ * [up ? 1 : 0, latency ms, HTTP status or 0 when the request never completed, and for failures
+ * only, the first characters of the response body or the error name]
+ */
+type Sample = [0 | 1, number, number] | [0 | 1, number, number, string];
 interface Run {
   t: number;
   r: Record<string, Sample>;
@@ -27,7 +30,7 @@ async function check(target: Target, env: Env): Promise<Sample> {
     const key = typeof raw === "string" ? raw.trim().replace(/^["']|["']$/g, "") : raw;
     // Supabase answers 401 to a keyless request, which would read as a healthy 4xx on some
     // targets. Fail loudly instead of sending it.
-    if (typeof key !== "string" || !key) return [0, 0, 0];
+    if (typeof key !== "string" || !key) return [0, 0, 0, `secret ${target.apiKeySecret} is not set`];
     headers.apikey = key;
     // Legacy anon keys are JWTs and are also sent as a bearer token. The newer sb_publishable_
     // keys are opaque and go in the apikey header alone.
@@ -40,12 +43,15 @@ async function check(target: Target, env: Env): Promise<Sample> {
       redirect: "follow",
       signal: AbortSignal.timeout(target.timeoutMs ?? 30_000),
     });
-    // Drain the body so the timing covers the full response, and so the connection is released.
-    await res.arrayBuffer();
-    const up = res.status <= (target.maxOkStatus ?? 399);
-    return [up ? 1 : 0, Date.now() - started, res.status];
-  } catch {
-    return [0, Date.now() - started, 0];
+    // Reading the body also makes the timing cover the full response and frees the connection.
+    const body = await res.text();
+    const up =
+      res.status <= (target.maxOkStatus ?? 399) &&
+      !(target.failIfBodyIncludes && body.includes(target.failIfBodyIncludes));
+    const ms = Date.now() - started;
+    return up ? [1, ms, res.status] : [0, ms, res.status, body.slice(0, 140)];
+  } catch (e) {
+    return [0, Date.now() - started, 0, e instanceof Error ? e.name : "error"];
   }
 }
 

@@ -52,6 +52,7 @@ export const dashboard = /* html */ `<!doctype html>
   .title { display: flex; align-items: center; gap: 6px; min-width: 0; }
   .name b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .host { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .why { color: var(--down); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
   .tag { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; white-space: nowrap; flex: none; }
   .num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
   .num small { display: block; color: var(--muted); font-size: 11px; }
@@ -150,13 +151,13 @@ function render() {
       const pad = Array(Math.max(0, BARS - s.bars.length)).fill("<span></span>").join("");
       const bars = s.bars.map((b) => {
         const st = !b.s ? "" : b.s[0] ? "up" : "down";
-        const tip = new Date(b.t).toLocaleString() + " — " + (!b.s ? "not checked" : (b.s[2] || "no response") + ", " + ms(b.s[1]));
+        const tip = new Date(b.t).toLocaleString() + " — " + (!b.s ? "not checked" : (b.s[2] || "no response") + ", " + ms(b.s[1]) + (b.s[3] ? " — " + b.s[3] : ""));
         return '<span class="' + st + '" title="' + esc(tip) + '"></span>';
       }).join("");
       return '<div class="row">' +
         '<div class="name"><span class="dot ' + state + '"></span><div style="min-width:0"><div class="title"><b>' + esc(t.name) + "</b>" +
           (t.keepAlive ? '<span class="tag">keep-alive</span>' : "") + "</div>" +
-          '<div class="host mono">' + esc(t.host) + "</div></div></div>" +
+          '<div class="host mono">' + esc(t.host) + "</div>" + (n && !n[0] && n[3] ? '<div class="why">' + esc(n[3]) + "</div>" : "") + "</div></div>" +
         '<div class="num mono">' + (n ? ms(n[1]) : "–") + "<small>" + (n ? (n[2] || "no reply") : "") + "</small></div>" +
         '<div class="num mono">' + (s.uptime == null ? "–" : s.uptime.toFixed(s.uptime === 100 ? 0 : 1) + "%") + "<small>uptime</small></div>" +
         '<div class="bars">' + pad + bars + "</div></div>";
