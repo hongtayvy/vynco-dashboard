@@ -39,12 +39,13 @@ export const targets: Target[] = [
     timeoutMs: 120_000,
   },
   {
-    id: "discgolfbagtips-api",
+    id: "discgolfbagtips-business",
     name: "Disc Golf Bag Tips API",
     provider: "render",
+    // The Render service is named discgolfbagtips-business, not the blueprint's discgolfbagtips-api.
     // Public and unauthenticated. It counts catalog rows and embedding coverage, so every ping
     // runs real queries against Postgres, unlike /actuator/health.
-    url: "https://discgolfbagtips-api.onrender.com/api/v1/status", // unverified: Render says no such service
+    url: "https://discgolfbagtips-business.onrender.com/api/v1/status",
     keepAlive: true,
     timeoutMs: 120_000,
   },
