@@ -22,7 +22,9 @@ const MANUAL_COOLDOWN_MS = 60_000;
 async function check(target: Target, env: Env): Promise<Sample> {
   const headers: Record<string, string> = { "user-agent": "vynco-dashboard/1.0" };
   if (target.apiKeySecret) {
-    const key = env[target.apiKeySecret];
+    // Pasted keys often arrive with a trailing newline or wrapping quotes.
+    const raw = env[target.apiKeySecret];
+    const key = typeof raw === "string" ? raw.trim().replace(/^["']|["']$/g, "") : raw;
     // Supabase answers 401 to a keyless request, which would read as a healthy 4xx on some
     // targets. Fail loudly instead of sending it.
     if (typeof key !== "string" || !key) return [0, 0, 0];
