@@ -24,13 +24,19 @@ const MANUAL_COOLDOWN_MS = 60_000;
 
 async function check(target: Target, env: Env): Promise<Sample> {
   const headers: Record<string, string> = { "user-agent": "vynco-dashboard/1.0" };
+  let shape = "";
   if (target.apiKeySecret) {
-    // Pasted keys often arrive with a trailing newline or wrapping quotes.
+    // Pasted keys often arrive with whitespace, wrapping quotes or the "NAME=" of a .env line.
     const raw = env[target.apiKeySecret];
-    const key = typeof raw === "string" ? raw.trim().replace(/^["']|["']$/g, "") : raw;
+    const key =
+      typeof raw === "string"
+        ? raw.replace(/\s+/g, "").replace(/^["']|["']$/g, "").replace(/^[A-Za-z_]+=/, "")
+        : "";
     // Supabase answers 401 to a keyless request, which would read as a healthy 4xx on some
     // targets. Fail loudly instead of sending it.
-    if (typeof key !== "string" || !key) return [0, 0, 0, `secret ${target.apiKeySecret} is not set`];
+    if (!key) return [0, 0, 0, `secret ${target.apiKeySecret} is not set`];
+    // Length and first characters only, so a failing check says what shape of key it holds.
+    shape = ` [key: ${key.length} chars, starts "${key.slice(0, 3)}"]`;
     headers.apikey = key;
     // Legacy anon keys are JWTs and are also sent as a bearer token. The newer sb_publishable_
     // keys are opaque and go in the apikey header alone.
@@ -49,7 +55,7 @@ async function check(target: Target, env: Env): Promise<Sample> {
       res.status <= (target.maxOkStatus ?? 399) &&
       !(target.failIfBodyIncludes && body.includes(target.failIfBodyIncludes));
     const ms = Date.now() - started;
-    return up ? [1, ms, res.status] : [0, ms, res.status, body.slice(0, 140)];
+    return up ? [1, ms, res.status] : [0, ms, res.status, body.slice(0, 140) + shape];
   } catch (e) {
     return [0, Date.now() - started, 0, e instanceof Error ? e.name : "error"];
   }
