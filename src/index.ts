@@ -27,7 +27,9 @@ async function check(target: Target, env: Env): Promise<Sample> {
     // targets. Fail loudly instead of sending it.
     if (typeof key !== "string" || !key) return [0, 0, 0];
     headers.apikey = key;
-    headers.authorization = `Bearer ${key}`;
+    // Legacy anon keys are JWTs and are also sent as a bearer token. The newer sb_publishable_
+    // keys are opaque and go in the apikey header alone.
+    if (key.startsWith("eyJ")) headers.authorization = `Bearer ${key}`;
   }
   const started = Date.now();
   try {
