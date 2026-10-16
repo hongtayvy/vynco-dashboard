@@ -12,13 +12,13 @@ export const dashboard = /* html */ `<!doctype html>
   :root {
     --bg: #f7f7f5; --panel: #ffffff; --line: #e6e6e1; --text: #18181b; --muted: #71717a;
     --up: #16a34a; --down: #dc2626; --idle: #d4d4d8;
-    --render: #6d56f5; --supabase: #1f9d6b; --cloudflare: #f38020;
+    --render: #6d56f5; --supabase: #1f9d6b; --railway: #7c3aed; --cloudflare: #f38020;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0b0b0d; --panel: #141417; --line: #232328; --text: #ececef; --muted: #8b8b94;
       --up: #22c55e; --down: #f05252; --idle: #2e2e35;
-      --render: #8b7bff; --supabase: #3ecf8e; --cloudflare: #f6923a;
+      --render: #8b7bff; --supabase: #3ecf8e; --railway: #a78bfa; --cloudflare: #f6923a;
     }
   }
   * { box-sizing: border-box; }
@@ -83,7 +83,7 @@ export const dashboard = /* html */ `<!doctype html>
   <div id="groups"></div>
 </div>
 <script>
-const PROVIDERS = { render: "Render", supabase: "Supabase", cloudflare: "Cloudflare" };
+const PROVIDERS = { render: "Render", supabase: "Supabase", railway: "Railway", cloudflare: "Cloudflare" };
 const CRON_MINUTES = 14;
 const BARS = 60;
 const $ = (id) => document.getElementById(id);

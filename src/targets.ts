@@ -1,4 +1,4 @@
-export type Provider = "render" | "supabase" | "cloudflare";
+export type Provider = "render" | "supabase" | "cloudflare" | "railway";
 
 export interface Target {
   id: string;
@@ -81,6 +81,16 @@ export const targets: Target[] = [
     // missing table is a 404 and stays down. A wrong key is caught by the Auth target above.
     maxOkStatus: 403,
     failIfBodyIncludes: "Invalid API key",
+  },
+
+  // Railway
+  {
+    id: "super-flawed-server",
+    name: "Super Flawed server",
+    provider: "railway",
+    // The realtime backend behind the Cloudflare site. The socket.io polling handshake proves the
+    // WebSocket server is up, which is what render.yaml also uses as its health check.
+    url: "https://superflawed-production.up.railway.app/socket.io/?EIO=4&transport=polling",
   },
 
   // Cloudflare
