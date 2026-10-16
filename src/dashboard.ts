@@ -12,13 +12,13 @@ export const dashboard = /* html */ `<!doctype html>
   :root {
     --bg: #f7f7f5; --panel: #ffffff; --line: #e6e6e1; --text: #18181b; --muted: #71717a;
     --up: #16a34a; --down: #dc2626; --idle: #d4d4d8;
-    --render: #6d56f5; --supabase: #1f9d6b; --railway: #7c3aed; --cloudflare: #f38020;
+    --render: #6d56f5; --supabase: #1f9d6b; --cloudflare: #f38020;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0b0b0d; --panel: #141417; --line: #232328; --text: #ececef; --muted: #8b8b94;
       --up: #22c55e; --down: #f05252; --idle: #2e2e35;
-      --render: #8b7bff; --supabase: #3ecf8e; --railway: #a78bfa; --cloudflare: #f6923a;
+      --render: #8b7bff; --supabase: #3ecf8e; --cloudflare: #f6923a;
     }
   }
   * { box-sizing: border-box; }
@@ -52,6 +52,18 @@ export const dashboard = /* html */ `<!doctype html>
   .title { display: flex; align-items: center; gap: 6px; min-width: 0; }
   .name b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .host { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hours { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 32px; }
+  .hours .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .hours .big { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .hours .big small { font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .hours .bar { height: 8px; border-radius: 4px; background: var(--idle); margin: 12px 0 10px; overflow: hidden; }
+  .hours .bar i { display: block; height: 100%; border-radius: 4px; background: var(--up); }
+  .hours .note { color: var(--muted); font-size: 13px; }
+  .hours button { padding: 4px 10px; font-size: 13px; }
+  .row.paused .name b, .row.paused .num { opacity: .6; }
+  h2 .all { margin-left: auto; padding: 2px 9px; font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; border-radius: 6px; }
+  .acts { display: flex; gap: 6px; margin-top: 8px; }
+  .acts button { padding: 2px 9px; font-size: 12px; border-radius: 6px; }
   .why { color: var(--down); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
   .tag { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; white-space: nowrap; flex: none; }
   .num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
@@ -80,10 +92,11 @@ export const dashboard = /* html */ `<!doctype html>
   </header>
   <div class="banner" id="banner"><span class="dot"></span><span>Waiting for the first check</span></div>
   <div class="tiles" id="tiles"></div>
+  <div id="hours"></div>
   <div id="groups"></div>
 </div>
 <script>
-const PROVIDERS = { render: "Render", supabase: "Supabase", railway: "Railway", cloudflare: "Cloudflare" };
+const PROVIDERS = { render: "Render", supabase: "Supabase", cloudflare: "Cloudflare" };
 const CRON_MINUTES = 14;
 const BARS = 60;
 const $ = (id) => document.getElementById(id);
@@ -98,9 +111,27 @@ const span = (d) => d < 3600e3 ? Math.max(1, Math.round(d / 60e3)) + "m" : Math.
 const ms = (n) => n >= 1000 ? (n / 1000).toFixed(1) + "s" : n + "ms";
 let data = null;
 
+function renderHours() {
+  const h = data.hours;
+  if (!h) { $("hours").innerHTML = ""; return; }
+  const pct = Math.min(100, (h.used / h.limit) * 100);
+  const left = Math.max(0, h.limit - h.used);
+  const color = pct >= 100 ? "var(--down)" : pct >= 80 ? "var(--cloudflare)" : "var(--up)";
+  const note = h.burnPerDay
+    ? "Pinging " + (h.burnPerDay / 24) + " Render service" + (h.burnPerDay === 24 ? "" : "s") + " keeps them awake: about " + h.burnPerDay + " h a day, so the " + Math.round(left) + " h left last about " + (left / h.burnPerDay).toFixed(1) + " days."
+    : "Every Render service is paused, so hours only build up while one is awake from real visits or a manual Ping.";
+  $("hours").innerHTML = '<div class="hours"><div class="top"><div><div class="k meta">Render free hours · ' + esc(h.month) + '</div>' +
+    '<div class="big">' + Math.round(h.used) + ' <small>/ ' + h.limit + ' h shared by all free services</small></div></div>' +
+    '<button id="sethours">Set from Render Billing</button></div>' +
+    '<div class="bar"><i style="width:' + pct.toFixed(1) + '%;background:' + color + '"></i></div>' +
+    '<div class="note">' + note + " Resets each billing period. Figure is the last value you set, plus " + h.estAdded.toFixed(1) + " h the Worker has added since.</div></div>";
+}
+
 function render() {
   if (!data) return;
   const { targets, runs } = data;
+  const pings = data.pings || {};
+  renderHours();
   const last = runs.at(-1);
   if (!last) {
     $("groups").innerHTML = '<div class="list empty">No checks yet. Press <b>Check now</b>, or wait for the next cron run.</div>';
@@ -118,8 +149,9 @@ function render() {
     };
   };
   const stats = Object.fromEntries(targets.map((t) => [t.id, stat(t.id)]));
-  const down = targets.filter((t) => stats[t.id].now && !stats[t.id].now[0]);
-  const upNow = targets.filter((t) => stats[t.id].now && stats[t.id].now[0]);
+  const live = targets.filter((t) => !t.paused);
+  const down = live.filter((t) => stats[t.id].now && !stats[t.id].now[0]);
+  const upNow = live.filter((t) => stats[t.id].now && stats[t.id].now[0]);
   const lat = upNow.map((t) => stats[t.id].now[1]);
   const all = runs.flatMap((r) => Object.values(r.r));
   const overall = all.length ? (all.filter((s) => s[0]).length / all.length) * 100 : 0;
@@ -127,17 +159,18 @@ function render() {
   const cls = down.length ? "down" : "up";
   $("hdot").className = "dot " + cls;
   $("banner").innerHTML = '<span class="dot ' + cls + '"></span><span>' +
-    (down.length ? down.length + " down: " + down.map((t) => esc(t.name)).join(", ") : "All systems operational") + "</span>";
+    (down.length ? down.length + " down: " + down.map((t) => esc(t.name)).join(", ") : "All systems operational") +
+    (live.length < targets.length ? " · " + (targets.length - live.length) + " paused" : "") + "</span>";
   document.title = (down.length ? "(" + down.length + " down) " : "") + "VYNCO Dashboard";
 
   const next = Math.max(0, Math.ceil((last.t + CRON_MINUTES * 60e3 - Date.now()) / 60e3));
-  $("meta").textContent = "Checked " + ago(last.t) + " · next keep-alive in ~" + next + "m · " + runs.length + " runs stored";
+  $("meta").textContent = "Checked " + ago(last.t) + " · next check in ~" + next + "m · " + runs.length + " runs stored";
 
   const tiles = [
-    ["Up now", upNow.length + " / " + targets.length],
+    ["Up now", upNow.length + " / " + live.length],
     ["Median latency", lat.length ? ms(lat.sort((a, b) => a - b)[Math.floor(lat.length / 2)]) : "–"],
     ["Uptime · " + span(last.t - runs[0].t), overall.toFixed(1) + "%"],
-    ["Kept awake", targets.filter((t) => t.keepAlive).length + " services"],
+    ["Pinged to stay awake", live.filter((t) => t.keepAlive).length + " services"],
   ];
   $("tiles").innerHTML = tiles.map(([k, v]) => '<div class="tile"><div class="k">' + k + '</div><div class="v">' + v + "</div></div>").join("");
 
@@ -146,7 +179,9 @@ function render() {
     if (!list.length) return "";
     const rows = list.map((t) => {
       const s = stats[t.id];
-      const n = s.now;
+      const manual = pings[t.id];
+      // A paused service is not checked on a schedule, so show its last manual ping instead.
+      const n = t.paused ? (manual ? manual.s : null) : s.now;
       const state = !n ? "" : n[0] ? "up" : "down";
       const pad = Array(Math.max(0, BARS - s.bars.length)).fill("<span></span>").join("");
       const bars = s.bars.map((b) => {
@@ -154,15 +189,25 @@ function render() {
         const tip = new Date(b.t).toLocaleString() + " — " + (!b.s ? "not checked" : (b.s[2] || "no response") + ", " + ms(b.s[1]) + (b.s[3] ? " — " + b.s[3] : ""));
         return '<span class="' + st + '" title="' + esc(tip) + '"></span>';
       }).join("");
-      return '<div class="row">' +
-        '<div class="name"><span class="dot ' + state + '"></span><div style="min-width:0"><div class="title"><b>' + esc(t.name) + "</b>" +
-          (t.keepAlive ? '<span class="tag">keep-alive</span>' : "") + "</div>" +
-          '<div class="host mono">' + esc(t.host) + "</div>" + (n && !n[0] && n[3] ? '<div class="why">' + esc(n[3]) + "</div>" : "") + "</div></div>" +
+      const tag = t.paused ? '<span class="tag">paused</span>' : (t.keepAlive ? '<span class="tag">keep-alive</span>' : "");
+      const sub = t.paused
+        ? (manual ? "Last ping " + ago(manual.t) : "Not being pinged")
+        : "";
+      const acts = '<div class="acts"><button data-act="ping" data-id="' + esc(t.id) + '">Ping</button>' +
+        '<button data-act="pause" data-id="' + esc(t.id) + '">' + (t.paused ? "Resume" : "Pause") + "</button></div>";
+      return '<div class="row' + (t.paused ? " paused" : "") + '">' +
+        '<div class="name"><span class="dot ' + state + '"></span><div style="min-width:0"><div class="title"><b>' + esc(t.name) + "</b>" + tag + "</div>" +
+          '<div class="host mono">' + esc(t.host) + "</div>" +
+          (sub ? '<div class="host">' + esc(sub) + "</div>" : "") +
+          (n && !n[0] && n[3] ? '<div class="why">' + esc(n[3]) + "</div>" : "") + acts + "</div></div>" +
         '<div class="num mono">' + (n ? ms(n[1]) : "–") + "<small>" + (n ? (n[2] || "no reply") : "") + "</small></div>" +
-        '<div class="num mono">' + (s.uptime == null ? "–" : s.uptime.toFixed(s.uptime === 100 ? 0 : 1) + "%") + "<small>uptime</small></div>" +
+        '<div class="num mono">' + (t.paused || s.uptime == null ? "–" : s.uptime.toFixed(s.uptime === 100 ? 0 : 1) + "%") + "<small>" + (t.paused ? "paused" : "uptime") + "</small></div>" +
         '<div class="bars">' + pad + bars + "</div></div>";
     }).join("");
-    return '<section><h2><i style="background:var(--' + p + ')"></i>' + label + '</h2><div class="list">' + rows + "</div></section>";
+    const allPaused = list.every((t) => t.paused);
+    return '<section><h2><i style="background:var(--' + p + ')"></i>' + label +
+      '<button class="all" data-act="pause-group" data-provider="' + p + '">' + (allPaused ? "Resume all" : "Pause all") + "</button></h2>" +
+      '<div class="list">' + rows + "</div></section>";
   }).join("");
 }
 
@@ -182,6 +227,54 @@ $("check").onclick = async () => {
   await load("/api/check", { method: "POST" });
   b.disabled = false; b.textContent = "Check now";
 };
+
+const send = async (url, body) => {
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) { alert(await res.text()); return false; }
+  data = await res.json(); render();
+  return true;
+};
+
+document.addEventListener("click", async (e) => {
+  const set = e.target.closest("#sethours");
+  if (set) {
+    const v = prompt("Render free hours used this month. Read it from Render, Workspace Settings, Billing:", Math.round(data.hours.used));
+    if (v === null) return;
+    const used = Number(v);
+    if (!Number.isFinite(used) || used < 0) { alert("Enter a number of hours."); return; }
+    await send("/api/hours", { used });
+    return;
+  }
+  const b = e.target.closest("button[data-act]");
+  if (!b) return;
+  if (b.dataset.act === "pause-group") {
+    const p = b.dataset.provider;
+    const group = data.targets.filter((x) => x.provider === p);
+    const resume = group.every((x) => x.paused);
+    if (resume && p === "render") {
+      const h = data.hours;
+      const burn = h.burnPerDay + 24 * group.length;
+      const left = Math.max(0, h.limit - h.used);
+      if (!confirm("Resuming all " + group.length + " Render services keeps them awake all day: about " + (24 * group.length) + " free hours a day from a pool of " + h.limit + " shared by every free service. With " + Math.round(left) + " h left, the pool lasts about " + (left / burn).toFixed(1) + " days. Resume all?")) return;
+    }
+    await send("/api/pause", { provider: p, paused: !resume });
+    return;
+  }
+  const t = data.targets.find((x) => x.id === b.dataset.id);
+  if (b.dataset.act === "ping") {
+    b.disabled = true; b.textContent = "Pinging…";
+    await send("/api/ping", { id: t.id });
+    return;
+  }
+  if (t.paused && t.provider === "render") {
+    const h = data.hours;
+    const burn = h.burnPerDay + 24;
+    const left = Math.max(0, h.limit - h.used);
+    const ok = confirm("Resuming pings " + t.name + " every " + CRON_MINUTES + " minutes, which keeps it awake all day: about 24 free hours a day from a pool of " + h.limit + " shared by every free service. With " + Math.round(left) + " h left and this one added, the pool lasts about " + (left / burn).toFixed(1) + " days. Resume?");
+    if (!ok) return;
+  }
+  await send("/api/pause", { id: t.id, paused: !t.paused });
+});
 
 load("/api/status");
 setInterval(() => load("/api/status"), 60e3);

@@ -1,4 +1,4 @@
-export type Provider = "render" | "supabase" | "cloudflare" | "railway";
+export type Provider = "render" | "supabase" | "cloudflare";
 
 export interface Target {
   id: string;
@@ -7,6 +7,12 @@ export interface Target {
   url: string;
   /** Pinged on every cron run so the host never idles it out (Render sleeps, Supabase pauses). */
   keepAlive?: boolean;
+  /**
+   * Listed on the page but never requested. Every Render ping wakes a free service, and an
+   * always-awake service burns 24 free instance-hours a day against the workspace's shared 750
+   * a month, so Render targets stay paused until there is a plan that can afford them.
+   */
+  paused?: boolean;
   /** Highest HTTP status still counted as up. Defaults to 399. */
   maxOkStatus?: number;
   /** Counted as down when the response body contains this text, even on an accepted status. */
@@ -34,6 +40,7 @@ export const targets: Target[] = [
     id: "twofold-business",
     name: "Twofold API",
     provider: "render",
+    paused: true,
     // Public via the actuator allow-list in SecurityConfig. Everything else needs a Supabase JWT,
     // and a scheduled job has no token, so /actuator/health is the only unauthenticated route.
     url: "https://twofold-business.onrender.com/actuator/health",
@@ -44,6 +51,7 @@ export const targets: Target[] = [
     id: "discgolfbagtips-business",
     name: "Disc Golf Bag Tips API",
     provider: "render",
+    paused: true,
     // The Render service is named discgolfbagtips-business, not the blueprint's discgolfbagtips-api.
     // Public and unauthenticated. It counts catalog rows and embedding coverage, so every ping
     // runs real queries against Postgres, unlike /actuator/health.
@@ -55,6 +63,7 @@ export const targets: Target[] = [
     id: "beyblade-x-api",
     name: "Beyblade X API",
     provider: "render",
+    paused: true,
     url: "https://beyblade-x-api.onrender.com/api/beyblades",
     keepAlive: true,
     maxOkStatus: 499, // the bare route answers 400, which still proves the service is awake
@@ -83,14 +92,15 @@ export const targets: Target[] = [
     failIfBodyIncludes: "Invalid API key",
   },
 
-  // Railway
+  // Super Flawed's realtime server. The site's code points here (the older Railway backend is
+  // no longer used), and it is the fourth free service sharing the same 750 hours.
   {
     id: "super-flawed-server",
     name: "Super Flawed server",
-    provider: "railway",
-    // The realtime backend behind the Cloudflare site. The socket.io polling handshake proves the
-    // WebSocket server is up, which is what render.yaml also uses as its health check.
-    url: "https://superflawed-production.up.railway.app/socket.io/?EIO=4&transport=polling",
+    provider: "render",
+    paused: true,
+    url: "https://super-flawed.onrender.com/socket.io/?EIO=4&transport=polling",
+    timeoutMs: 120_000,
   },
 
   // Cloudflare
