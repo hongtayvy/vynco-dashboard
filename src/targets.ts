@@ -59,17 +59,6 @@ export const targets: Target[] = [
     keepAlive: true,
     timeoutMs: 120_000,
   },
-  {
-    id: "beyblade-x-api",
-    name: "Beyblade X API",
-    provider: "render",
-    paused: true,
-    url: "https://beyblade-x-api.onrender.com/api/beyblades",
-    keepAlive: true,
-    maxOkStatus: 499, // the bare route answers 400, which still proves the service is awake
-    timeoutMs: 120_000,
-  },
-
   // Supabase: free projects pause after a week without activity.
   {
     id: "supabase-auth",
