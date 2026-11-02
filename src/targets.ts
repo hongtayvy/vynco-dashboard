@@ -92,17 +92,23 @@ export const targets: Target[] = [
     apiKeySecret: "SUPABASE_PROMPTOUT_ANON_KEY",
     keepAlive: true,
   },
-  // Prompt Out's MCP server (mcpUrl in prompt-out-web/site.config.json). Unverified: the host was
-  // not reachable when this was added, and which host runs it was not confirmed. The static
-  // site (prompt-out-web) is a Render static site, which never sleeps, so it is not listed.
+  // Prompt Out's two Render web services (prompt-out-app/render.yaml, both on the free plan).
+  // /healthz is public and returns {"ok":true} without touching Supabase.
   {
     id: "promptout-mcp",
     name: "Prompt Out MCP server",
     provider: "render",
     paused: true,
-    url: "https://mcp.promptout.app/mcp",
-    // An MCP endpoint answers a bare GET with 4xx (405/406/401) while still being up.
-    maxOkStatus: 499,
+    url: "https://promptout-mcp.onrender.com/healthz",
+    keepAlive: true,
+    timeoutMs: 120_000,
+  },
+  {
+    id: "promptout-api",
+    name: "Prompt Out API",
+    provider: "render",
+    paused: true,
+    url: "https://promptout-api.onrender.com/healthz",
     keepAlive: true,
     timeoutMs: 120_000,
   },
