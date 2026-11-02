@@ -81,6 +81,38 @@ export const targets: Target[] = [
     failIfBodyIncludes: "Invalid API key",
   },
 
+  // Prompt Out. Its Supabase project is separate from the one above, so it needs its own key:
+  // `npx wrangler secret put SUPABASE_PROMPTOUT_ANON_KEY` (the publishable key in
+  // prompt-out-web/site.config.json).
+  {
+    id: "promptout-supabase-auth",
+    name: "Prompt Out Supabase Auth",
+    provider: "supabase",
+    url: "https://vrfeezzqteamhvpgkkqk.supabase.co/auth/v1/health",
+    apiKeySecret: "SUPABASE_PROMPTOUT_ANON_KEY",
+    keepAlive: true,
+  },
+  // Prompt Out's two Render web services (prompt-out-app/render.yaml, both on the free plan).
+  // /healthz is public and returns {"ok":true} without touching Supabase.
+  {
+    id: "promptout-mcp",
+    name: "Prompt Out MCP server",
+    provider: "render",
+    paused: true,
+    url: "https://promptout-mcp.onrender.com/healthz",
+    keepAlive: true,
+    timeoutMs: 120_000,
+  },
+  {
+    id: "promptout-api",
+    name: "Prompt Out API",
+    provider: "render",
+    paused: true,
+    url: "https://promptout-api.onrender.com/healthz",
+    keepAlive: true,
+    timeoutMs: 120_000,
+  },
+
   // Super Flawed's realtime server. The site's code points here (the older Railway backend is
   // no longer used), and it is the fourth free service sharing the same 750 hours.
   {
